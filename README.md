@@ -1,6 +1,7 @@
 
 <h3><b>Mini Project 1.</b> Photoresistor + Relay module. </h3>
-[view source](https://github.com/YaroslavSagach/Beetroot_MiniProject1/blob/main/MiniProject_1/src/main.cpp)
+
+[[view source](MiniProject_1/src/main.cpp)]
 
 <p>
 A simple ESP32 project using a photoresistor to detect light. When it gets dark, the relay is activated and an LED turns on automatically.
