@@ -96,10 +96,11 @@ class Button {
 };
 
 volatile bool buttonPressed = false;
-unsigned int lastInterruptTime = 0;
+unsigned long lastInterruptTime = 0;
 void IRAM_ATTR onButtonPress() {
-  int currentMillis = millis();
+  unsigned long currentMillis = millis();
   if (currentMillis - lastInterruptTime >= Config::BUTTON_DEBOUNCE_MS) {
+    lastInterruptTime = currentMillis;
     buttonPressed = true;
   }
 }
