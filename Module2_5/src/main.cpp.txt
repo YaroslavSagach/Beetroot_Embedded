@@ -1,0 +1,96 @@
+#include <Arduino.h>
+
+const int ledPin1 = 15;
+const int ledPin2 = 16;
+const int ledPin3 = 17;
+
+
+bool stateLed1 = false;
+bool stateLed2 = false;
+bool stateLed3 = false;
+
+hw_timer_t *timer = NULL;
+
+volatile uint32_t sub_counter = 0;
+
+volatile bool flag_alarm1 = false;
+volatile bool flag_alarm2 = false;
+volatile bool flag_alarm3 = false; 
+
+volatile uint32_t count_alarm1 = 0;
+volatile uint32_t count_alarm2 = 0;
+volatile uint32_t count_alarm3 = 0; 
+
+void IRAM_ATTR onTimer() {
+  sub_counter++;
+
+  // Алярм 1: кожні 100 мс (кожні 2 тіки по 50 мс)
+  if (sub_counter % 2 == 0) {
+    flag_alarm1 = true;
+    count_alarm1++;
+  }
+
+  // Алярм 2: кожні 250 мс (кожні 5 тіків по 50 мс)
+  if (sub_counter % 5 == 0) {
+    flag_alarm2 = true;
+    count_alarm2++;
+  }
+
+  // Алярм 3: кожні 500 мс (кожні 10 тіків по 50 мс)
+  if (sub_counter % 10 == 0) {
+    flag_alarm3 = true;
+    count_alarm3++;
+  }
+
+  // Скидання лічильника для уникнення розсинхронізації 
+  // НСК для 2, 5 і 10 дорівнює 10. Тому цикл повторюється кожні 500 мс.
+  if (sub_counter >= 10) {
+    sub_counter = 0;
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(ledPin1, OUTPUT);
+  pinMode(ledPin2, OUTPUT);
+  pinMode(ledPin3, OUTPUT);
+  
+  digitalWrite(ledPin1, LOW);
+  digitalWrite(ledPin2, LOW);
+  digitalWrite(ledPin3, LOW);
+
+  // Канал 0, подільник 80 (80 МГц / 80 = 1 МГц -> 1 тік = 1 мкс), рахунок вгору
+  timer = timerBegin(0, 80, true);
+
+  timerAttachInterrupt(timer, &onTimer, true);
+
+  // Базовий тік 50 000 мкс (50 мс)
+  timerAlarmWrite(timer, 1000000, true);
+
+  timerAlarmEnable(timer);
+}
+
+const uint32_t INTERVAL_MS = 1000;
+
+void loop() {
+  static uint32_t previous_millis = millis();
+
+   if (flag_alarm1) {
+    flag_alarm1 = false; 
+    stateLed1 = !stateLed1;               
+    digitalWrite(ledPin1, stateLed1);     
+  }
+
+  if (flag_alarm2) {
+    flag_alarm2 = false; 
+    stateLed2 = !stateLed2;               
+    digitalWrite(ledPin2, stateLed2);     
+  }
+
+  if (flag_alarm3) {
+    flag_alarm3 = false; 
+    stateLed3 = !stateLed3;               
+    digitalWrite(ledPin3, stateLed3);    
+  }
+}

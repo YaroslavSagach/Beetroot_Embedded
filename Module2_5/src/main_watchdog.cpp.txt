@@ -1,0 +1,40 @@
+#include <Arduino.h>
+#include <esp_task_wdt.h>
+
+#define WDT_TIMEOUT_SEC 3 
+
+int counter = 0;
+
+void setup() {
+  Serial.begin(115200);
+
+  // 1. Ініціалізація Watchdog Timer
+  esp_task_wdt_init(WDT_TIMEOUT_SEC, true);
+  
+  // 2. Підключення поточного завдання (циклу loop) до Watchdog
+  esp_task_wdt_add(NULL); 
+  
+  Serial.println("Watchdog активовано. Таймаут: 3 секунди.");
+}
+
+void loop() {
+  counter++;
+  Serial.printf("Робочий цикл %d. Скидання Watchdog...\n", counter);
+  
+  // скидаємо таймер
+  // Якщо цього не робити кожні 3 секунди, система перезавантажиться
+  esp_task_wdt_reset(); 
+  
+  delay(1000);
+  // Штучно створюємо зависання на 5-й секунді
+  if (counter >= 5) {
+    Serial.println("\n[УВАГА] Імітація зависання програми! Процесор зупинено.");
+    Serial.println("Watchdog більше не скидається. Чекаємо на перезавантаження...\n");
+    
+    // Безкінечний цикл, який імітує зависання.
+    // Функція esp_task_wdt_reset() більше не викликається.
+    while (true) {
+      // Процесор заблоковано тут
+    }
+  }
+}
