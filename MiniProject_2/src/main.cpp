@@ -45,23 +45,23 @@ void updateLeds() {
   digitalWrite(Config::LED_PIN_RED, ledStates[2]);
 }
 
-bool stateFlag = 0;
+volatile bool stateFlag = 0;
 void IRAM_ATTR onStateTimer() {
   stateFlag = 1;
 }
 
-bool blinkFlag = 0;
+volatile bool blinkFlag = 0;
 void IRAM_ATTR onBlinkTimer() {
   blinkFlag = 1;
 }
 
-bool buttonPressed = 0;
+volatile bool buttonPressed = 0;
 uint32_t lastButtonPressTime = 0;
 void IRAM_ATTR onButtonPress() {
   buttonPressed = 1;
 }
 
-bool specialModOn = 0;
+volatile bool specialModOn = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -89,10 +89,13 @@ void setup() {
 void loop() {
   unsigned long currentMillis = millis();
 
-  if (buttonPressed && currentMillis - lastButtonPressTime >= Config::BUTTON_DEBOUNCE_MS) {
-    lastButtonPressTime = currentMillis;
+  if (buttonPressed) {
     buttonPressed = false;
-    if (currentTrafficState == TrafficState::STATE_YELLOW_BLINK) {
+
+    if (currentMillis - lastButtonPressTime >= Config::BUTTON_DEBOUNCE_MS) {
+      lastButtonPressTime = currentMillis;
+
+      if (currentTrafficState == TrafficState::STATE_YELLOW_BLINK) {
       currentTrafficState = TrafficState::STATE_GREEN;
       specialModOn = false;
       
@@ -102,7 +105,11 @@ void loop() {
       ledStates[2] = 0;
       updateLeds();
 
+      // synchronize timers
       stateFlag = 0;
+      timerWrite(stateTimer, 0);
+      blinkFlag = 0;
+      timerWrite(blinkTimer, 0);
       timerAlarmWrite(stateTimer, MS_TO_TICKS(Config::T_GREEN_MS), true);
       Serial.println("Changed traffic light state to normal. -> GREEN");
     } else {
@@ -115,6 +122,7 @@ void loop() {
       updateLeds();
 
       Serial.println("Changed traffic light state to special - [Blinking Yellow].");
+    }      
     }
   }
 
