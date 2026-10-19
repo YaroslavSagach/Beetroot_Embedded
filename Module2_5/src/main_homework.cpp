@@ -11,7 +11,7 @@ struct Config {
 };
 
 hw_timer_t *timer = NULL;
-bool fanAlarm = false;
+volatile bool fanAlarm = false;
 bool fanState = false;
 
 void IRAM_ATTR onTimerFanOn() {
