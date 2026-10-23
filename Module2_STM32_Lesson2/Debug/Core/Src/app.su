@@ -1,0 +1,4 @@
+../Core/Src/app.c:11:12:serial_print	16	static
+../Core/Src/app.c:18:6:setup	4	static
+../Core/Src/app.c:22:6:loop	16	static
+../Core/Src/app.c:37:6:app_button_pressed	4	static
