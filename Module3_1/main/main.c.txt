@@ -1,0 +1,84 @@
+#include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_adc/adc_oneshot.h"
+#include "esp_log.h"
+#include "esp_adc/adc_cali.h"
+#include "esp_adc/adc_cali_scheme.h"
+
+#define ADC_UNIT ADC_UNIT_1             // АЦП1
+#define ADC_CHANNEL_PHOTO ADC_CHANNEL_5 // GPIO6
+#define ADC_CHANNEL_TEMP ADC_CHANNEL_3  // GPIO4
+static const char *TAG_PHOTO = "ADC_LAB_PHOTO";
+static const char *TAG_TEMP = "ADC_LAB_TEMP";
+
+void app_main(void)
+{
+    adc_oneshot_unit_handle_t adc1_handle; // хендл блока АЦП1 — потрібен для всіх подальших викликів
+    adc_oneshot_unit_init_cfg_t init_config = {
+        .unit_id = ADC_UNIT,
+    };
+    adc_oneshot_new_unit(&init_config, &adc1_handle); // реєструємо блок АЦП1
+
+    adc_oneshot_chan_cfg_t chan_config = {
+        .bitwidth = ADC_BITWIDTH_DEFAULT, // типова роздільна здатність (12 біт на класичному ESP32)
+        .atten = ADC_ATTEN_DB_12,         // дозволяє читати повний діапазон ~0-3.3В (детально — Крок 2)
+    };
+    adc_oneshot_config_channel(adc1_handle, ADC_CHANNEL_PHOTO, &chan_config);
+    adc_oneshot_config_channel(adc1_handle, ADC_CHANNEL_TEMP, &chan_config);
+
+    adc_cali_handle_t cali_handle_photo = NULL;
+    adc_cali_curve_fitting_config_t cali_config_photo = {
+        .unit_id = ADC_UNIT,
+        .chan = ADC_CHANNEL_PHOTO,
+        .atten = ADC_ATTEN_DB_12,
+        .bitwidth = ADC_BITWIDTH_DEFAULT,
+    };
+    esp_err_t ret = adc_cali_create_scheme_curve_fitting(&cali_config_photo, &cali_handle_photo); // читає заводські дані з eFuse чипа
+
+    if (ret != ESP_OK)
+    {
+        ESP_LOGI(TAG_PHOTO, "Заводське калібрування недоступне на цьому чипі");
+    }
+
+    adc_cali_handle_t cali_handle_temp = NULL;
+    adc_cali_curve_fitting_config_t cali_config_temp = {
+        .unit_id = ADC_UNIT,
+        .chan = ADC_CHANNEL_TEMP,
+        .atten = ADC_ATTEN_DB_12,
+        .bitwidth = ADC_BITWIDTH_DEFAULT,
+    };
+    adc_cali_create_scheme_curve_fitting(&cali_config_temp, &cali_handle_temp);
+
+    while (1)
+    {
+        // PHOTO
+        int raw_photo = 0;
+        adc_oneshot_read(adc1_handle, ADC_CHANNEL_PHOTO, &raw_photo);
+
+        int voltage_mv_calibrated_photo = 0;
+        adc_cali_raw_to_voltage(cali_handle_photo, raw_photo, &voltage_mv_calibrated_photo); // ТОЧНЕ переведення з урахуванням eFuse-даних чипа
+
+        float voltage_mv_naive_photo = (raw_photo / 4095.0f) * 3300.0f; // ПРИБЛИЗНЕ переведення "на око"
+
+        ESP_LOGI(TAG_PHOTO, "raw=%4d   calibrated=%d mV   naive=%.0f mV   diff=%d mV",
+                 raw_photo, voltage_mv_calibrated_photo, voltage_mv_naive_photo,
+                 voltage_mv_calibrated_photo - (int)voltage_mv_naive_photo);
+
+
+        // TEMP         
+        int raw_temp = 0;
+        adc_oneshot_read(adc1_handle, ADC_CHANNEL_TEMP, &raw_temp);
+
+        int voltage_mv_calibrated_temp = 0;
+        adc_cali_raw_to_voltage(cali_handle_temp, raw_temp, &voltage_mv_calibrated_temp); // ТОЧНЕ переведення з урахуванням eFuse-даних чипа
+
+        float voltage_mv_naive_temp = (raw_temp / 4095.0f) * 3300.0f; // ПРИБЛИЗНЕ переведення "на око"
+
+        ESP_LOGI(TAG_TEMP, "raw=%4d   calibrated=%d mV   naive=%.0f mV   diff=%d mV",
+                 raw_temp, voltage_mv_calibrated_temp, voltage_mv_naive_temp,
+                 voltage_mv_calibrated_temp - (int)voltage_mv_naive_temp);
+
+        vTaskDelay(pdMS_TO_TICKS(200));
+    }
+}
