@@ -55,7 +55,7 @@ void app_main(void)
         float deviation = 0.0f;
 
         if (raw != 0) {
-            deviation = fabsf((float)voltage_mv_calibrated - raw) / fabsf((float)raw) * 100.0f;
+            deviation = fabsf(voltage_mv_calibrated - voltage_mv_naive) / voltage_mv_calibrated * 100.0f;
         }
 
         // ESP_LOGI(TAG, "raw=%4d   calibrated=%d mV   naive=%.0f mV   diff=%d mV   deviation=%0.2f",
