@@ -11,7 +11,7 @@
 // GPIO
 #define BUZZER_PIN       GPIO_NUM_2
 #define BUTTON_PIN       GPIO_NUM_5
-#define BUTTON_DEBOUNCE_MS 50
+#define BUTTON_DEBOUNCE_MICROS 50000
 
 // LEDC
 #define LEDC_TIMER       LEDC_TIMER_0
@@ -33,7 +33,7 @@
 
 static const char *TAG = "buzzer_synth";
 
-static inline uint32_t millis(void)
+static inline uint32_t micros(void)
 {
     return (uint32_t)(esp_timer_get_time());
 }
@@ -177,11 +177,12 @@ void app_main(void)
     button_init();
 
     while (1) {
-        uint32_t currentMillis = millis();
+        uint32_t currentMicros = micros();
 
         if (buttonPressed) {
             buttonPressed = false;
-            if (currentMillis - lastButtonTime > BUTTON_DEBOUNCE_MS) {
+            if (currentMicros - lastButtonTime > BUTTON_DEBOUNCE_MICROS) {
+                lastButtonTime = currentMicros;
                 current_melody = (current_melody + 1) % MELODIES_COUNT;
             }
         }
