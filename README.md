@@ -33,3 +33,12 @@ A simple ESP32 project simulating traffic lights, with user of timers, interrupt
   <img src="images/project2_2.jpg" width="20%">
 </p>
 
+
+<h3><b>Mini Project 3.</b> Safe. </h3>
+
+[[view source](MiniProject_3/main/main.c)]
+
+<p>
+An ESP32 project, using encoder, buzzer and servo. Simulating the work of safe. 
+</p>
+
